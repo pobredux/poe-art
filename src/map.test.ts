@@ -31,8 +31,13 @@ test("PoE1 skill variants map to their shared base gem art", async () => {
     },
   };
   const gems = {
+    Discipline: {
+      icon_dds_file: "Art/2DArt/SkillIcons/Discipline.dds",
+      base_item: { id: "Metadata/Items/Gems/SkillGemDiscipline", display_name: "Discipline" },
+    },
     SummonStoneGolemAltY: {
       skill_name: "Summon Stone Golem of Safeguarding",
+      icon_dds_file: "Art/2DArt/SkillIcons/RockGolemSummon.dds",
       base_item: { id: "Metadata/Items/Gems/SkillGemSummonRockGolem" },
     },
   };
@@ -41,12 +46,16 @@ test("PoE1 skill variants map to their shared base gem art", async () => {
   await Bun.write(path.join(dir, "skill_gems.min.json"), JSON.stringify(gems));
   await Bun.write(path.join(dir, "buff_visuals.min.json"), "{}");
   await Bun.write(path.join(dir, "Art/2DItems/Gems/RockGolem.webp"), "stone golem art");
+  await Bun.write(path.join(dir, "Art/2DArt/SkillIcons/RockGolemSummon.webp"), "stone golem skill art");
+  await Bun.write(path.join(dir, "Art/2DArt/SkillIcons/Discipline.webp"), "discipline skill art");
   await Bun.write(path.join(dir, "Art/StormBladeOneHand.webp"), "one handed energy blade art");
   await Bun.write(path.join(dir, "Art/StormBladeTwoHand.webp"), "two handed energy blade art");
 
   const { map } = await buildMap("poe1", "test", dir, {});
 
   expect(map.bases["Summon Stone Golem of Safeguarding"]).toBe("Art/2DItems/Gems/RockGolem.webp");
+  expect(map.skills["Summon Stone Golem of Safeguarding"]).toBe("Art/2DArt/SkillIcons/RockGolemSummon.webp");
+  expect(map.skills.Discipline).toBe("Art/2DArt/SkillIcons/Discipline.webp");
 });
 
 test("buff definitions and unlinked visuals map to exported status art", async () => {
@@ -65,6 +74,18 @@ test("buff definitions and unlinked visuals map to exported status art", async (
     },
   };
   const visuals = {
+    discipline: {
+      icon: "Art/2DArt/SkillIcons/auraenergy.dds",
+      sources: { BuffDefinitions: [{ id: "player_aura_energy_shield", name: "Discipline Aura" }] },
+    },
+    flame_golem: {
+      icon: "Art/2DArt/SkillIcons/FireElementalSummon.dds",
+      sources: { BuffDefinitions: [{ id: "fire_elemental_buff", name: "Flame Golem" }] },
+    },
+    righteous_fire: {
+      icon: "Art/2DArt/BuffIcons/buffonfire.dds",
+      sources: { BuffDefinitions: [{ id: "righteous_fire_alt_1", name: "Righteous Fire" }] },
+    },
     ignited_template: {
       icon: "Art/2DArt/BuffIcons/template-fire.dds",
       sources: { BuffTemplates: [{ id: "IgniteTemplate", buff_id: "ignited" }] },
@@ -82,7 +103,11 @@ test("buff definitions and unlinked visuals map to exported status art", async (
   };
   await Bun.write(path.join(dir, "base_items.min.json"), JSON.stringify(bases));
   await Bun.write(path.join(dir, "uniques.min.json"), "[]");
-  await Bun.write(path.join(dir, "skill_gems.min.json"), "{}");
+  await Bun.write(path.join(dir, "skill_gems.min.json"), JSON.stringify({
+    Discipline: { base_item: { display_name: "Discipline" } },
+    SummonFireGolem: { base_item: { display_name: "Summon Flame Golem" } },
+    RighteousFireAltX: { skill_name: "Righteous Fire of Arcane Devotion" },
+  }));
   await Bun.write(path.join(dir, "buff_visuals.min.json"), JSON.stringify(visuals));
   for (const file of [
     "Art/StormBladeOneHand.webp",
@@ -91,6 +116,8 @@ test("buff definitions and unlinked visuals map to exported status art", async (
     "Art/2DArt/BuffIcons/buffonfire.webp",
     "Art/2DArt/BuffIcons/rage.webp",
     "Art/2DArt/BuffIcons/visual-only.webp",
+    "Art/2DArt/SkillIcons/auraenergy.webp",
+    "Art/2DArt/SkillIcons/FireElementalSummon.webp",
   ]) {
     await Bun.write(path.join(dir, file), file);
   }
@@ -102,6 +129,9 @@ test("buff definitions and unlinked visuals map to exported status art", async (
   expect(map.buffNames.Ignited).toBe("Art/2DArt/BuffIcons/buffonfire.webp");
   expect(map.buffNames.Rage).toBe("Art/2DArt/BuffIcons/rage.webp");
   expect(map.buffNames["Visual Only"]).toBe("Art/2DArt/BuffIcons/visual-only.webp");
+  expect(map.buffNames.Discipline).toBe("Art/2DArt/SkillIcons/auraenergy.webp");
+  expect(map.buffNames["Summon Flame Golem"]).toBe("Art/2DArt/SkillIcons/FireElementalSummon.webp");
+  expect(map.buffNames["Righteous Fire of Arcane Devotion"]).toBe("Art/2DArt/BuffIcons/buffonfire.webp");
   expect(map.buffVisuals.visual_only).toBe("Art/2DArt/BuffIcons/visual-only.webp");
   expect(map.buffs.visual_only).toBeUndefined();
   expect(missing).toContain("Art/2DArt/BuffIcons/missing.dds");

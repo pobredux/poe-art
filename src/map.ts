@@ -8,6 +8,7 @@ export interface ArtMap {
   bases: Record<string, string>;
   uniques: Record<string, string>;
   sockets: Record<string, string>;
+  skills: Record<string, string>;
   buffs: Record<string, string>;
   buffNames: Record<string, string>;
   buffVisuals: Record<string, string>;
@@ -39,6 +40,12 @@ interface BuffVisualRow {
   sources?: Record<string, BuffVisualSource[]>;
 }
 
+interface SkillGemRow {
+  skill_name?: string;
+  icon_dds_file?: string;
+  base_item?: { id?: string; display_name?: string };
+}
+
 async function rows<T = Row>(file: string): Promise<[string, T][]> {
   const data = await Bun.file(file).json();
   return (Array.isArray(data) ? data.map((row, i) => [String(i), row]) : Object.entries(data)) as [string, T][];
@@ -48,6 +55,18 @@ const byKey = <T>([a]: [string, T], [b]: [string, T]) => (a < b ? -1 : a > b ? 1
 const sorted = (record: Map<string, string>) => Object.fromEntries([...record].sort(byKey));
 const ascii = (name: string) => name.normalize("NFD").replace(/\p{M}/gu, "");
 const loose = (text: string) => text.toLowerCase().replace(/[^a-z0-9]/g, "");
+
+/** PoB names the applied effect after its skill; game buff definitions often use the base skill name. */
+function buffNameCandidates(skillName: string): string[] {
+  const names = new Set([skillName, `${skillName} Aura`]);
+  const base = skillName.replace(/ of .+$/, "");
+  names.add(base);
+  names.add(`${base} Aura`);
+  for (const name of [...names]) {
+    if (name.startsWith("Summon ")) names.add(name.slice("Summon ".length));
+  }
+  return [...names];
+}
 
 export async function buildMap(game: Game, version: string, dir: string, sockets: Record<string, string>) {
   const files = new Map<string, string>();
@@ -88,8 +107,15 @@ export async function buildMap(game: Game, version: string, dir: string, sockets
   const overridesFile = Bun.file(`overrides/${game}.json`);
   const overrides: Overrides = (await overridesFile.exists()) ? await overridesFile.json() : {};
   const byId = new Map(baseRows);
+  const skills = new Map<string, string>();
+  const skillGemFile = path.join(dir, "skill_gems.min.json");
+  const gemRows = await rows<SkillGemRow>(skillGemFile);
+  for (const [, gem] of gemRows) {
+    const name = gem.skill_name ?? gem.base_item?.display_name;
+    const image = gem.icon_dds_file && (await art(gem.icon_dds_file));
+    if (name && image && !skills.has(name)) skills.set(name, image);
+  }
   if (game === "poe1") {
-    const gemRows = await rows(path.join(dir, "skill_gems.min.json"));
     for (const [, gem] of gemRows) {
       if (!gem.skill_name || bases.has(gem.skill_name)) continue;
       const dds = gem.base_item?.id && byId.get(gem.base_item.id)?.visual_identity?.dds_file;
@@ -160,6 +186,16 @@ export async function buildMap(game: Game, version: string, dir: string, sockets
     if (image) buffNames.set(name, image);
     else buffNames.delete(name);
   }
+  // Auras, golems and transfigured skills use the skill's display name in PoB,
+  // while the applied BuffDefinition uses names such as "Discipline Aura",
+  // "Flame Golem" and "Righteous Fire". Publish exact skill-name aliases that
+  // still point to the effect's BuffVisual rather than to gem or skill art.
+  for (const [, gem] of gemRows) {
+    const skillName = gem.skill_name ?? gem.base_item?.display_name;
+    if (!skillName || buffNames.has(skillName)) continue;
+    const match = buffNameCandidates(skillName).find((name) => buffNames.has(name));
+    if (match) buffNames.set(skillName, buffNames.get(match)!);
+  }
   for (const [name, image] of [...buffNames]) {
     const plain = ascii(name);
     if (plain !== name && !buffNames.has(plain)) buffNames.set(plain, image);
@@ -172,6 +208,7 @@ export async function buildMap(game: Game, version: string, dir: string, sockets
     bases: sorted(bases),
     uniques: sorted(uniques),
     sockets: Object.fromEntries(socketImages),
+    skills: sorted(skills),
     buffs: sorted(buffs),
     buffNames: sorted(buffNames),
     buffVisuals: sorted(buffVisuals),

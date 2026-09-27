@@ -20,6 +20,7 @@ R2 bucket, and commits the new map to `maps/`.
   "bases": { "Amethyst Ring": "Art/2DItems/Rings/Basetypes/AmethystRing.webp" },
   "uniques": { "Astramentis": "Art/2DItems/Amulets/Uniques/Astramentis.webp" },
   "sockets": { "red": "Art/2DArt/UIImages/InGame/4K/ItemsSocketRed.webp" },
+  "skills": { "Discipline": "Art/2DArt/SkillIcons/4k/Discipline.webp" },
   "buffs": { "ignited": "Art/2DArt/BuffIcons/buffonfire.webp" },
   "buffNames": { "Ignited": "Art/2DArt/BuffIcons/buffonfire.webp" },
   "buffVisuals": { "ignited": "Art/2DArt/BuffIcons/buffonfire.webp" },
@@ -40,8 +41,13 @@ metadata ID.
 and `empty`, `rune` and `soulCore` augment sockets in PoE2. `src/config.ts` lists the UI sprites they come
 from; PoE1 sprites are cut out of the game's sprite sheets.
 
+`skills` maps skill and gem-variant display names to their in-game skill icons. These are the square icons the
+HUD uses for skill-derived buffs and are distinct from the inventory art in `bases`.
+
 `buffs` maps `BuffDefinitions` ids to their icons and includes every status category, including buffs,
 debuffs, charges, flasks, hexes, marks and heralds. `buffNames` provides the corresponding display-name lookup.
+It also includes skill-name aliases used by PoB, while retaining the applied effect's buff visual—for example,
+`Summon Flame Golem` resolves through the `Flame Golem` buff rather than through gem inventory art.
 `buffVisuals` maps every exported `BuffVisuals` id to its icon, including visuals which are not linked directly
 to a buff definition. Buffs without an in-game icon are not listed.
 
