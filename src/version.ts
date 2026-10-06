@@ -1,8 +1,12 @@
+import type { Socket } from "bun";
 import { GAMES, type Game } from "./config";
 
-const SERVERS: Record<Game, { host: string; port: number; hello: number[]; prefix: string }> = {
-  poe1: { host: "patch.pathofexile.com", port: 12995, hello: [1, 6], prefix: "3." },
-  poe2: { host: "patch.pathofexile2.com", port: 13060, hello: [1, 7], prefix: "4." },
+type Server = { host: string; port: number; hello: number[]; version: RegExp };
+
+const SERVERS: Record<Game, Server> = {
+  poe1: { host: "patch.pathofexile.com", port: 12995, hello: [1, 6], version: /^3\./ },
+  // PoE2 patches were numbered 4.x until GGG renumbered them to the public 0.x and 1.x.
+  poe2: { host: "patch.pathofexile2.com", port: 13060, hello: [1, 7], version: /^[01]\./ },
 };
 
 function parse(data: Uint8Array): string {
@@ -21,11 +25,14 @@ function parse(data: Uint8Array): string {
   return version;
 }
 
-export async function patchVersion(game: Game): Promise<string> {
-  const server = SERVERS[game];
-  const reply = await new Promise<Uint8Array>((resolve, reject) => {
+function ask(server: Server): Promise<Uint8Array> {
+  return new Promise<Uint8Array>((resolve, reject) => {
     const chunks: Uint8Array[] = [];
-    const timer = setTimeout(() => reject(new Error(`${server.host} did not answer`)), 10_000);
+    let connection: Socket | undefined;
+    const timer = setTimeout(() => {
+      connection?.terminate();
+      reject(new Error(`${server.host} did not answer`));
+    }, 10_000);
     Bun.connect({
       hostname: server.host,
       port: server.port,
@@ -48,10 +55,23 @@ export async function patchVersion(game: Game): Promise<string> {
           reject(error);
         },
       },
-    }).catch(reject);
+    }).then((socket) => {
+      connection = socket;
+    }, reject);
   });
+}
+
+export async function patchVersion(game: Game): Promise<string> {
+  const server = SERVERS[game];
+  let reply: Uint8Array;
+  try {
+    reply = await ask(server);
+  } catch (error) {
+    console.log(`${game}: ${error instanceof Error ? error.message : error}, asking again`);
+    reply = await ask(server);
+  }
   const version = parse(reply);
-  if (!version.startsWith(server.prefix)) throw new Error(`unexpected ${game} version ${version}`);
+  if (!server.version.test(version)) throw new Error(`unexpected ${game} version ${version}`);
   return version;
 }
 
