@@ -4,8 +4,8 @@ import { GAMES, type Game } from "./config";
 type Server = { host: string; port: number; hello: number[]; version: RegExp };
 
 const SERVERS: Record<Game, Server> = {
-  poe1: { host: "patch.pathofexile.com", port: 12995, hello: [1, 6], version: /^3\./ },
-  // PoE2 patches were numbered 4.x until GGG renumbered them to the public 0.x and 1.x.
+  // PoE2 left 4.x for the public 0.x (1.x from 1.0), so a later PoE1 may take 4.x.
+  poe1: { host: "patch.pathofexile.com", port: 12995, hello: [1, 6], version: /^[34]\./ },
   poe2: { host: "patch.pathofexile2.com", port: 13060, hello: [1, 7], version: /^[01]\./ },
 };
 
