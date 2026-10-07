@@ -22,7 +22,7 @@ function parseSprites(bytes: Uint8Array): Map<string, Sprite> {
   return sprites;
 }
 
-export async function exportSockets(game: Game, version: string, dir: string): Promise<Record<string, string>> {
+async function uiSprites(game: Game, version: string, dir: string) {
   const raw = path.join(dir, "..", `${version}-ui`);
   const log = path.join(dir, "..", `${version}.log`);
   const source = ["--cdn", version, `--${game}`, "-o", raw];
@@ -30,8 +30,7 @@ export async function exportSockets(game: Game, version: string, dir: string): P
   if (!(await Bun.file(index).exists())) await explorer(["export", "Art/UIImages1.txt", ...source], log);
   const sprites = parseSprites(await Bun.file(index).bytes());
 
-  const sockets: Record<string, string> = {};
-  for (const [key, id] of Object.entries(SOCKETS[game])) {
+  async function cut(id: string): Promise<string> {
     const sprite = sprites.get(id);
     if (!sprite) throw new Error(`${game} ${version} has no UI sprite ${id}`);
     const png = path.join(raw, sprite.texture.toLowerCase().replace(/\.dds$/, ".png"));
@@ -40,7 +39,27 @@ export async function exportSockets(game: Game, version: string, dir: string): P
     await mkdir(path.dirname(path.join(dir, file)), { recursive: true });
     const { left, top, width, height } = sprite;
     await sharp(png).extract({ left, top, width, height }).webp({ lossless: true }).toFile(path.join(dir, file));
-    sockets[key] = file;
+    return file;
   }
+  return { ids: [...sprites.keys()], cut };
+}
+
+export async function exportSockets(game: Game, version: string, dir: string): Promise<Record<string, string>> {
+  const { cut } = await uiSprites(game, version, dir);
+  const sockets: Record<string, string> = {};
+  for (const [key, id] of Object.entries(SOCKETS[game])) sockets[key] = await cut(id);
   return sockets;
+}
+
+// The game names these Icon<attributes>[Four[b]][_<ascendancy id>], e.g. IconDexFour_Ranger1 or IconDex_Raider.
+const CLASS_ICON = /^Art\/2DArt\/UIImages\/Common\/(Icon(?:Str|Dex|Int)\w*)$/;
+
+export async function exportClassIcons(game: Game, version: string, dir: string): Promise<Record<string, string>> {
+  const { ids, cut } = await uiSprites(game, version, dir);
+  const icons: Record<string, string> = {};
+  for (const id of ids) {
+    const name = CLASS_ICON.exec(id)?.[1];
+    if (name) icons[name] = await cut(id);
+  }
+  return icons;
 }

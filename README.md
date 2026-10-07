@@ -20,6 +20,7 @@ R2 bucket, and commits the new map to `maps/`.
   "bases": { "Amethyst Ring": "Art/2DItems/Rings/Basetypes/AmethystRing.webp" },
   "uniques": { "Astramentis": "Art/2DItems/Amulets/Uniques/Astramentis.webp" },
   "sockets": { "red": "Art/2DArt/UIImages/InGame/4K/ItemsSocketRed.webp" },
+  "classIcons": { "IconDexFour_Ranger1": "Art/2DArt/UIImages/Common/IconDexFour_Ranger1.webp" },
   "skills": { "Discipline": "Art/2DArt/SkillIcons/4k/Discipline.webp" },
   "buffs": { "ignited": "Art/2DArt/BuffIcons/buffonfire.webp" },
   "buffNames": { "Ignited": "Art/2DArt/BuffIcons/buffonfire.webp" },
@@ -40,6 +41,11 @@ metadata ID.
 `sockets` has the item socket art: `red`, `green`, `blue`, `white` and `link` in both games, `abyss` in PoE1,
 and `empty`, `rune` and `soulCore` augment sockets in PoE2. `src/config.ts` lists the UI sprites they come
 from; PoE1 sprites are cut out of the game's sprite sheets.
+
+`classIcons` has the game's class and ascendancy portraits, keyed by their sprite name. A class icon is
+`Icon` and the class's attributes, such as `IconDex` (PoE1 Ranger) or `IconDexFour` (PoE2 Ranger). An
+ascendancy adds `_` and its id: `IconDex_Raider` is PoE1's Warden and `IconDexFour_Ranger1` is PoE2's Deadeye.
+Sprites for classes the game has not released yet are included.
 
 `skills` maps skill and gem-variant display names to their in-game skill icons. These are the square icons the
 HUD uses for skill-derived buffs and are distinct from the inventory art in `bases`.

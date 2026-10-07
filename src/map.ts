@@ -8,6 +8,7 @@ export interface ArtMap {
   bases: Record<string, string>;
   uniques: Record<string, string>;
   sockets: Record<string, string>;
+  classIcons: Record<string, string>;
   skills: Record<string, string>;
   buffs: Record<string, string>;
   buffNames: Record<string, string>;
@@ -68,7 +69,13 @@ function buffNameCandidates(skillName: string): string[] {
   return [...names];
 }
 
-export async function buildMap(game: Game, version: string, dir: string, sockets: Record<string, string>) {
+export async function buildMap(
+  game: Game,
+  version: string,
+  dir: string,
+  sockets: Record<string, string>,
+  classIcons: Record<string, string> = {},
+) {
   const files = new Map<string, string>();
   const tags = new Map<string, string>();
   const missing = new Set<string>();
@@ -142,6 +149,12 @@ export async function buildMap(game: Game, version: string, dir: string, sockets
     socketImages.set(key, image);
   }
 
+  const classImages = new Map<string, string>();
+  for (const [name, image] of Object.entries(classIcons)) {
+    if (!(await art(image.replace(/\.webp$/, ".dds")))) throw new Error(`${game}: class icon ${name} was not exported`);
+    classImages.set(name, image);
+  }
+
   const buffs = new Map<string, string>();
   const directBuffs = new Set<string>();
   const buffNames = new Map<string, string>();
@@ -208,6 +221,7 @@ export async function buildMap(game: Game, version: string, dir: string, sockets
     bases: sorted(bases),
     uniques: sorted(uniques),
     sockets: Object.fromEntries(socketImages),
+    classIcons: sorted(classImages),
     skills: sorted(skills),
     buffs: sorted(buffs),
     buffNames: sorted(buffNames),

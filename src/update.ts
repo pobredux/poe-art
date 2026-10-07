@@ -4,7 +4,7 @@ import { GAMES, type Game } from "./config";
 import { exportGame } from "./export";
 import { stackGemStrips } from "./gems";
 import { buildMap } from "./map";
-import { exportSockets } from "./sockets";
+import { exportClassIcons, exportSockets } from "./sockets";
 import { publish } from "./upload";
 import { patchVersion } from "./version";
 
@@ -16,10 +16,17 @@ const selected = games.length ? games : GAMES;
 async function publishedVersion(game: Game): Promise<string | null> {
   const file = Bun.file(`maps/${game}.json`);
   if (!(await file.exists())) return null;
-  const map = (await file.json()) as { version: string; skills?: unknown; buffs?: unknown; buffNames?: unknown; buffVisuals?: unknown };
-  // A map from before status art was added must rebuild even when the game
-  // patch itself has not changed.
-  return map.skills && map.buffs && map.buffNames && map.buffVisuals ? map.version : null;
+  const map = (await file.json()) as {
+    version: string;
+    skills?: unknown;
+    buffs?: unknown;
+    buffNames?: unknown;
+    buffVisuals?: unknown;
+    classIcons?: unknown;
+  };
+  // A map from before status art or class icons were added must rebuild even
+  // when the game patch itself has not changed.
+  return map.skills && map.buffs && map.buffNames && map.buffVisuals && map.classIcons ? map.version : null;
 }
 
 async function output(name: string, value: string) {
@@ -48,10 +55,11 @@ for (const { game, version } of stale) {
   }
   if (game === "poe1") console.log(`${game}: stacked ${await stackGemStrips(dir)} gem images`);
   const sockets = await exportSockets(game, version, dir);
-  const { map, files, missing } = await buildMap(game, version, dir, sockets);
+  const classIcons = await exportClassIcons(game, version, dir);
+  const { map, files, missing } = await buildMap(game, version, dir, sockets, classIcons);
   console.log(
     `${game}: ${Object.keys(map.bases).length} bases, ${Object.keys(map.uniques).length} uniques, ` +
-      `${Object.keys(map.sockets).length} sockets, ${Object.keys(map.buffs).length} buffs, ` +
+      `${Object.keys(map.sockets).length} sockets, ${Object.keys(map.classIcons).length} class icons, ${Object.keys(map.buffs).length} buffs, ` +
       `${Object.keys(map.skills).length} skills, ` +
       `${Object.keys(map.buffNames).length} buff names, ${Object.keys(map.buffVisuals).length} buff visuals, ` +
       `${files.size} images, ${missing.length} art files not exported`,
