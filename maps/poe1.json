@@ -1,6 +1,6 @@
 {
  "game": "poe1",
- "version": "3.30.0.2",
+ "version": "3.30.0.2.2",
  "images": "https://art.pobredux.com/poe1/",
  "bases": {
   "\"O' Eternal\"": "Art/2DItems/QuestItems/Heist/OEternalPoetryBook.webp",
